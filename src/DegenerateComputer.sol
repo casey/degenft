@@ -58,7 +58,7 @@ contract DegenerateComputer is ERC165, ERC2981, ERC721, ERC721Metadata {
     invokeReceiver(address(0), _root, id, new bytes(0));
   }
 
-  function recompile(uint256 id, string calldata metadata) external sudo {
+  function recompile(string calldata metadata, uint256 id) external sudo {
     require(_owners[id] == _root);
     _metadata[id] = metadata;
   }
