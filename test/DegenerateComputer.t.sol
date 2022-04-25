@@ -6,17 +6,17 @@ import "../src/DegenerateComputer.sol";
 import "ds-test/test.sol";
 
 contract ContractTest is DSTest {
-    DegenerateComputer computer;
+  DegenerateComputer computer;
 
-    function setUp() public {
-      computer = new DegenerateComputer();
-    }
+  function setUp() public {
+    computer = new DegenerateComputer();
+  }
 
-    function testName() public {
-        assertEq(computer.name(), "Degenerate Computer");
-    }
+  function testName() public {
+    assertEq(computer.name(), "Degenerate Computer");
+  }
 
-    function testToken() public {
-        assertEq(computer.symbol(), "DGNCMP");
-    }
+  function testToken() public {
+    assertEq(computer.symbol(), "DGNCMP");
+  }
 }
