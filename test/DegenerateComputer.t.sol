@@ -24,6 +24,18 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
 
   // Other
 
+  function testRoot() public {
+    assertEq(computer.root(), root);
+    computer.chroot(address(1));
+    assertEq(computer.root(), address(1));
+  }
+
+  function testProgramCounter() public {
+    assertEq(computer.programCounter(), 0);
+    computer.compile("");
+    assertEq(computer.programCounter(), 1);
+  }
+
   function testChroot() public {
     computer.compile("");
     computer.recompile("a", 0);

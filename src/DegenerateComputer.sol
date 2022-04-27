@@ -45,8 +45,8 @@ contract DegenerateComputer is ERC165, ERC2981, ERC721, ERC721Metadata {
     _root = msg.sender;
   }
 
-  function chroot(address root) external sudo {
-    _root = root;
+  function chroot(address newRoot) external sudo {
+    _root = newRoot;
   }
 
   function compile(string calldata metadata) external sudo {
@@ -58,9 +58,17 @@ contract DegenerateComputer is ERC165, ERC2981, ERC721, ERC721Metadata {
     invokeReceiver(address(0), _root, id, new bytes(0));
   }
 
+  function programCounter() external view returns (uint256) {
+    return _programCounter;
+  }
+
   function recompile(string calldata metadata, uint256 id) external sudo {
     require(_owners[id] == _root);
     _metadata[id] = metadata;
+  }
+
+  function root() external view returns (address) {
+    return _root;
   }
 
   function invokeReceiver(address from, address to, uint256 id, bytes memory data) private {
