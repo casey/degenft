@@ -99,6 +99,7 @@ contract DegenerateComputer is ERC165, ERC2981, ERC721, ERC721Metadata {
   }
 
   function getApproved(uint256 id) external view returns (address) {
+    require(id < _programCounter);
     return _approved[id];
   }
 
@@ -106,8 +107,10 @@ contract DegenerateComputer is ERC165, ERC2981, ERC721, ERC721Metadata {
     return _approvedForAll[owner][operator];
   }
 
-  function ownerOf(uint256 id) external view returns (address owner) {
-    require((owner = _owners[id]) != address(0));
+  function ownerOf(uint256 id) external view returns (address) {
+    address owner = _owners[id];
+    require(owner != address(0));
+    return owner;
   }
 
   function safeTransferFrom(address from, address to, uint256 id) external {
