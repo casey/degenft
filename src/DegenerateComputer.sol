@@ -29,7 +29,7 @@ import "src/ERC721Metadata.sol";
 import "src/ERC721TokenReceiver.sol";
 
 contract DegenerateComputer is ERC165, ERC173, ERC2981, ERC721, ERC721Metadata {
-  address private _root;
+  address private _owner;
   mapping(address => mapping(address => bool)) private _approvedForAll;
   mapping(address => uint256) private _balances;
   mapping(uint256 => address) private _owners;
@@ -37,39 +37,31 @@ contract DegenerateComputer is ERC165, ERC173, ERC2981, ERC721, ERC721Metadata {
   mapping(uint256 => string) private _metadata;
   uint256 private _programCounter;
 
-  modifier sudo() {
-    require(msg.sender == _root);
+  modifier ownerOnly() {
+    require(msg.sender == _owner);
     _;
   }
 
   constructor() {
-    _root = msg.sender;
+    _owner = msg.sender;
   }
 
-  function chroot(address newRoot) external sudo {
-    _root = newRoot;
-  }
-
-  function compile(string calldata metadata) external sudo {
+  function compile(string calldata metadata) external ownerOnly {
     uint256 id = _programCounter++;
     _metadata[id] = metadata;
-    _balances[_root]++;
-    _owners[id] = _root;
-    emit Transfer(address(0), _root, id);
-    invokeReceiver(address(0), _root, id, new bytes(0));
+    _balances[_owner]++;
+    _owners[id] = _owner;
+    emit Transfer(address(0), _owner, id);
+    invokeReceiver(address(0), _owner, id, new bytes(0));
   }
 
   function programCounter() external view returns (uint256) {
     return _programCounter;
   }
 
-  function recompile(string calldata metadata, uint256 id) external sudo {
-    require(_owners[id] == _root);
+  function recompile(string calldata metadata, uint256 id) external ownerOnly {
+    require(_owners[id] == _owner);
     _metadata[id] = metadata;
-  }
-
-  function root() external view returns (address) {
-    return _root;
   }
 
   function invokeReceiver(address from, address to, uint256 id, bytes memory data) private {
@@ -83,28 +75,41 @@ contract DegenerateComputer is ERC165, ERC173, ERC2981, ERC721, ERC721Metadata {
   // ERC165
 
   function supportsInterface(bytes4 id) external pure returns (bool) {
-    // ERC165, ERC2981, ERC721, and ERC721Metadata
-    return id == 0x01ffc9a7 || id == 0x2a55205a || id == 0x80ac58cd || id == 0x5b5e139f;
+    // ERC165, ERC173, ERC2981, ERC721, and ERC721Metadata
+    return id == 0x01ffc9a7 || id == 0x7f5828d0 || id == 0x2a55205a || id == 0x80ac58cd || id == 0x5b5e139f;
   }
+
+  // ERC165
+
+  function owner() view external returns(address) {
+    return _owner;
+  }
+
+  function transferOwnership(address _newOwner) external ownerOnly {
+    address previousOwner = _owner;
+    _owner = _newOwner;
+    emit OwnershipTransferred(previousOwner, _newOwner);
+  }
+
 
   // ERC2981
 
   function royaltyInfo(uint256, uint256 price) external view returns (address, uint256) {
-    return (_root, price * 10 / 100);
+    return (_owner, price * 10 / 100);
   }
 
   // ERC721
 
   function approve(address spender, uint256 id) external {
-    address owner = _owners[id];
-    require(msg.sender == owner || _approvedForAll[owner][msg.sender]);
+    address tokenOwner = _owners[id];
+    require(msg.sender == tokenOwner || _approvedForAll[tokenOwner][msg.sender]);
     _approved[id] = spender;
-    emit Approval(owner, spender, id);
+    emit Approval(tokenOwner, spender, id);
   }
 
-  function balanceOf(address owner) external view returns (uint256) {
-    require(owner != address(0));
-    return _balances[owner];
+  function balanceOf(address tokenOwner) external view returns (uint256) {
+    require(tokenOwner != address(0));
+    return _balances[tokenOwner];
   }
 
   function getApproved(uint256 id) external view returns (address) {
@@ -112,14 +117,14 @@ contract DegenerateComputer is ERC165, ERC173, ERC2981, ERC721, ERC721Metadata {
     return _approved[id];
   }
 
-  function isApprovedForAll(address owner, address operator) external view returns (bool) {
-    return _approvedForAll[owner][operator];
+  function isApprovedForAll(address tokenOwner, address operator) external view returns (bool) {
+    return _approvedForAll[tokenOwner][operator];
   }
 
   function ownerOf(uint256 id) external view returns (address) {
-    address owner = _owners[id];
-    require(owner != address(0));
-    return owner;
+    address tokenOwner = _owners[id];
+    require(tokenOwner != address(0));
+    return tokenOwner;
   }
 
   function safeTransferFrom(address from, address to, uint256 id) external {

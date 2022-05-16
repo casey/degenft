@@ -10,11 +10,11 @@ import "test/NonERC721TokenReceiver.sol";
 contract ContractTest is DSTest, ERC721TokenReceiver {
   DegenerateComputer computer;
   HEVM vm = HEVM(DSTest.HEVM_ADDRESS);
-  address root;
+  address owner;
 
   function setUp() public {
     computer = new DegenerateComputer();
-    root = address(this);
+    owner = address(this);
   }
 
   // Implement ERC721TokenReceiver so address(this) can receive tokens
@@ -24,39 +24,10 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
 
   // Other
 
-  function testRoot() public {
-    assertEq(computer.root(), root);
-    computer.chroot(address(1));
-    assertEq(computer.root(), address(1));
-  }
-
   function testProgramCounter() public {
     assertEq(computer.programCounter(), 0);
     computer.compile("");
     assertEq(computer.programCounter(), 1);
-  }
-
-  function testChroot() public {
-    computer.compile("");
-    computer.recompile("a", 0);
-    computer.chroot(address(1));
-
-    vm.expectRevert();
-    computer.compile("");
-    vm.expectRevert();
-    computer.recompile("b", 0);
-    vm.expectRevert();
-    computer.chroot(root);
-
-    vm.startPrank(address(1));
-    computer.compile("");
-    computer.recompile("c", 1);
-    computer.chroot(root);
-    vm.stopPrank();
-
-    computer.compile("");
-    computer.recompile("a", 2);
-    computer.chroot(address(1));
   }
 
   // ERC165
@@ -67,6 +38,13 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
 
   function testSupportsERC165Interface() public view {
     require(computer.supportsInterface(bytes4(keccak256('supportsInterface(bytes4)'))));
+  }
+
+  function testSupportsERC173Interface() public view {
+    require(computer.supportsInterface(
+      bytes4(keccak256('owner()')) ^
+      bytes4(keccak256('transferOwnership(address)'))
+    ));
   }
 
   function testSupportsERC2981Interface() public view {
@@ -95,29 +73,60 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
     ));
   }
 
+  // ERC173
+
+  function testOwner() public {
+    assertEq(computer.owner(), owner);
+    computer.transferOwnership(address(1));
+    assertEq(computer.owner(), address(1));
+  }
+
+  function testTransferOwnership() public {
+    computer.compile("");
+    computer.recompile("a", 0);
+    computer.transferOwnership(address(1));
+
+    vm.expectRevert();
+    computer.compile("");
+    vm.expectRevert();
+    computer.recompile("b", 0);
+    vm.expectRevert();
+    computer.transferOwnership(owner);
+
+    vm.startPrank(address(1));
+    computer.compile("");
+    computer.recompile("c", 1);
+    computer.transferOwnership(owner);
+    vm.stopPrank();
+
+    computer.compile("");
+    computer.recompile("a", 2);
+    computer.transferOwnership(address(1));
+  }
+
   // ERC2981
 
   function testRoyaltyFor0() public {
     (address to, uint256 amount) = computer.royaltyInfo(0, 0);
-    assertEq(to, root);
+    assertEq(to, owner);
     assertEq(amount, 0);
   }
 
   function testRoyaltyFor100() public {
     (address to, uint256 amount) = computer.royaltyInfo(0, 100);
-    assertEq(to, root);
+    assertEq(to, owner);
     assertEq(amount, 10);
   }
 
   function testRoyaltyFor1000() public {
     (address to, uint256 amount) = computer.royaltyInfo(0, 1000);
-    assertEq(to, root);
+    assertEq(to, owner);
     assertEq(amount, 100);
   }
 
   function testRoyaltyInfoRoundsDown() public {
     (address to, uint256 amount) = computer.royaltyInfo(0, 101);
-    assertEq(to, root);
+    assertEq(to, owner);
     assertEq(amount, 10);
   }
 
@@ -152,28 +161,28 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
     computer.compile("");
     vm.prank(address(1));
     vm.expectRevert();
-    computer.transferFrom(root, address(1), 0);
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
   }
 
   function testApprovedMayTransfer() public {
     computer.compile("");
     vm.prank(address(1));
     vm.expectRevert();
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     computer.approve(address(1), 0);
     vm.prank(address(1));
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
   }
 
   function testApprovedForAllMayTransfer() public {
     computer.compile("");
     vm.prank(address(1));
     vm.expectRevert();
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     computer.setApprovalForAll(address(1), true);
     vm.prank(address(1));
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     computer.setApprovalForAll(address(1), false);
   }
 
@@ -192,17 +201,17 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
   }
 
   function testIsApprovedForAll() public {
-    assertTrue(!computer.isApprovedForAll(root, address(1)));
+    assertTrue(!computer.isApprovedForAll(owner, address(1)));
     computer.setApprovalForAll(address(1), true);
-    assertTrue(computer.isApprovedForAll(root, address(1)));
+    assertTrue(computer.isApprovedForAll(owner, address(1)));
     computer.setApprovalForAll(address(1), false);
-    assertTrue(!computer.isApprovedForAll(root, address(1)));
+    assertTrue(!computer.isApprovedForAll(owner, address(1)));
   }
 
   function testBalanceIncrementsAfterCompile() public {
-    assertEq(computer.balanceOf(root), 0);
+    assertEq(computer.balanceOf(owner), 0);
     computer.compile("");
-    assertEq(computer.balanceOf(root), 1);
+    assertEq(computer.balanceOf(owner), 1);
   }
 
   function testBalanceOfRequiresNonzeroAddress() public {
@@ -213,31 +222,31 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
 
   function testTransferUpdatesBalance() public {
     computer.compile("");
-    assertEq(computer.balanceOf(root), 1);
+    assertEq(computer.balanceOf(owner), 1);
     assertEq(computer.balanceOf(address(1)), 0);
-    computer.transferFrom(root, address(1), 0);
-    assertEq(computer.balanceOf(root), 0);
+    computer.transferFrom(owner, address(1), 0);
+    assertEq(computer.balanceOf(owner), 0);
     assertEq(computer.balanceOf(address(1)), 1);
   }
 
   function testOnlyOwnerMayTransfer() public {
     computer.compile("");
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     vm.expectRevert();
-    computer.transferFrom(address(1), root, 0);
+    computer.transferFrom(address(1), owner, 0);
   }
 
   function testSecondOwnerMayTransfer() public {
     computer.compile("");
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     vm.prank(address(1));
     computer.transferFrom(address(1), address(2), 0);
   }
 
   function testOwnerOf() public {
     computer.compile("");
-    assertEq(computer.ownerOf(0), root);
-    computer.transferFrom(root, address(1), 0);
+    assertEq(computer.ownerOf(0), owner);
+    computer.transferFrom(owner, address(1), 0);
     assertEq(computer.ownerOf(0), address(1));
   }
 
@@ -250,7 +259,7 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
     computer.compile("");
     vm.expectRevert();
     computer.transferFrom(address(1), address(2), 0);
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     vm.prank(address(1));
     computer.transferFrom(address(1), address(2), 0);
   }
@@ -258,23 +267,23 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
   function testTransferRequiresNonzeroToAddress() public {
     computer.compile("");
     vm.expectRevert();
-    computer.transferFrom(root, address(0), 0);
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(0), 0);
+    computer.transferFrom(owner, address(1), 0);
   }
 
   function testTransferRequiresValidID() public {
     vm.expectRevert();
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     computer.compile("");
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
   }
 
   function testTransferDoesNotRequireValidReceiver() public {
     computer.compile("");
     NonERC721TokenReceiver receiver = new NonERC721TokenReceiver();
     vm.expectRevert();
-    computer.safeTransferFrom(root, address(receiver), 0);
-    computer.transferFrom(root, address(receiver), 0);
+    computer.safeTransferFrom(owner, address(receiver), 0);
+    computer.transferFrom(owner, address(receiver), 0);
   }
 
   function testTransferDeletesApproval() public {
@@ -282,7 +291,7 @@ contract ContractTest is DSTest, ERC721TokenReceiver {
     assertEq(computer.getApproved(0), address(0));
     computer.approve(address(1), 0);
     assertEq(computer.getApproved(0), address(1));
-    computer.transferFrom(root, address(1), 0);
+    computer.transferFrom(owner, address(1), 0);
     assertEq(computer.getApproved(0), address(0));
   }
 
