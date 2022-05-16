@@ -22,12 +22,13 @@
 pragma solidity ^0.8.13;
 
 import "src/ERC165.sol";
+import "src/ERC173.sol";
 import "src/ERC2981.sol";
 import "src/ERC721.sol";
 import "src/ERC721Metadata.sol";
 import "src/ERC721TokenReceiver.sol";
 
-contract DegenerateComputer is ERC165, ERC2981, ERC721, ERC721Metadata {
+contract DegenerateComputer is ERC165, ERC173, ERC2981, ERC721, ERC721Metadata {
   address private _root;
   mapping(address => mapping(address => bool)) private _approvedForAll;
   mapping(address => uint256) private _balances;
